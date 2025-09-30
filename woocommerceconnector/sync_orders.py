@@ -48,13 +48,13 @@ def get_woocommerce_order_status_for_import():
     for status in _status_list:
         status_list.append(status.status)
     return status_list
-    
+
 def valid_customer_and_product(woocommerce_order):
     if woocommerce_order.get("status").lower() == "cancelled":
         return False
 
     # تأكد من وجود العميل الثابت
-    customer = "Main WooCommerce Customer"
+    customer = "mjdali173@gmail.com"
     if not frappe.db.exists("Customer", customer):
         frappe.throw(_("Customer {} does not exist").format(customer))
 
@@ -145,7 +145,7 @@ def create_order(woocommerce_order, woocommerce_settings, company=None):
 
 def create_sales_order(woocommerce_order, woocommerce_settings, company=None):
     # استخدام عميل ثابت بدل إنشاء عملاء جدد
-    customer = "Main WooCommerce Customer"
+    customer = "mjdali173@gmail.com"
 
     so = frappe.db.get_value("Sales Order", {"woocommerce_order_id": woocommerce_order.get("id")}, "name")
     if not so:
