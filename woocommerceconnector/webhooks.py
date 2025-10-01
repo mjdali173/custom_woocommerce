@@ -60,7 +60,6 @@ def create_webhooks():
         "checkouts/create", "checkouts/update", "checkouts/delete", "refunds/create", "products/create",
         "products/update", "products/delete", "collections/create", "collections/update", "collections/delete",
         "customer_groups/create", "customer_groups/update", "customer_groups/delete",
-        # تم حذف كل أحداث customers/*
         "fulfillments/create", "fulfillments/update", "shop/update", "disputes/create", "disputes/update",
         "app/uninstalled", "channels/delete", "product_publications/create", "product_publications/update",
         "product_publications/delete", "collection_publications/create", "collection_publications/update",

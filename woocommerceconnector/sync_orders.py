@@ -102,7 +102,7 @@ def create_new_customer_of_guest(woocommerce_order):
             "name": "wowo@alsharaa-dent.com",
             "woocommerce_customer_id": "wowo@alsharaa-dent.com",
             "sync_with_woocommerce": 0,
-            "customer_group": woocommerce_settings.customer_group or "Default",
+            "customer_group": "Commercial",
             "territory": frappe.utils.nestedset.get_root_of("Territory"),
             "customer_type": "Individual"
            
@@ -187,7 +187,7 @@ def create_sales_order(woocommerce_order, woocommerce_settings, company=None):
             "woocommerce_order_id": woocommerce_order.get("id"),
             "woocommerce_payment_method": woocommerce_order.get("payment_method_title"),
             "customer": "woocommerce@alsharaa-dent.com",
-            "customer_group": woocommerce_settings.customer_group,
+            "customer_group": "Commercial",
             "delivery_date": nowdate(),
             "company": woocommerce_settings.company,
             "selling_price_list": woocommerce_settings.price_list,
