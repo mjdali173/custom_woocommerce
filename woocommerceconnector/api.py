@@ -7,7 +7,7 @@ import frappe
 from frappe import _
 from .exceptions import woocommerceError
 from .sync_orders import sync_orders, close_synced_woocommerce_orders
-from .sync_customers import sync_customers
+
 from .sync_products import sync_products, update_item_stock_qty
 from .utils import disable_woocommerce_sync_on_exception, make_woocommerce_log
 from frappe.utils.background_jobs import enqueue
@@ -48,7 +48,7 @@ def sync_woocommerce_resources():
             frappe.local.form_dict.count_dict["products"] = 0
             frappe.local.form_dict.count_dict["orders"] = 0
             sync_products(woocommerce_settings.price_list, woocommerce_settings.warehouse, True if woocommerce_settings.sync_items_from_woocommerce_to_erp == 1 else False)
-            sync_customers()
+  
             sync_orders()
             # close_synced_woocommerce_orders() # DO NOT GLOBALLY CLOSE
             if woocommerce_settings.sync_item_qty_from_erpnext_to_woocommerce:
