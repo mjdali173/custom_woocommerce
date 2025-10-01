@@ -44,7 +44,7 @@ def create_sales_order(woocommerce_order, woocommerce_settings):
 
         payment_method_title = woocommerce_order.get("payment_method_title") or "N/A"
 
-     so = frappe.get_doc({
+        so = frappe.get_doc({
     "doctype": "Sales Order",
     "naming_series": woocommerce_settings.sales_order_series or "SO-woocommerce-",
     "woocommerce_order_id": woocommerce_order.get("id"),
