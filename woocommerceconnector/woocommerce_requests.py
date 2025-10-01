@@ -205,15 +205,22 @@ def get_woocommerce_tax(woocommerce_tax_id):
 def get_woocommerce_customer(woocommerce_customer_id):
     return get_request("customers/{0}".format(woocommerce_customer_id))
 
+def get_woocommerce_orders(order_status="any"):
+    valid_statuses = [
+        "any", "trash", "auto-draft", "pending", "processing", "on-hold", 
+        "completed", "cancelled", "refunded", "failed", "checkout-draft"
+    ]
 
-def get_woocommerce_orders(order_status):
+    if order_status not in valid_statuses:
+        order_status = "any"  # تعيين قيمة افتراضية صحيحة
+
     woocommerce_orders = []
 
-    response = get_request_request('orders?per_page={0}&status={1}'.format(_per_page,order_status))
+    response = get_request_request(f'orders?per_page={_per_page}&status={order_status}')
     woocommerce_orders.extend(response.json())
         
-    for page_idx in range(1, int( response.headers.get('X-WP-TotalPages')) or 1):
-        response = get_request_request('orders?per_page={0}&page={1}&status={2}'.format(_per_page,page_idx+1,order_status))
+    for page_idx in range(1, int(response.headers.get('X-WP-TotalPages', 1))):
+        response = get_request_request(f'orders?per_page={_per_page}&page={page_idx+1}&status={order_status}')
         woocommerce_orders.extend(response.json())
 
     return woocommerce_orders
