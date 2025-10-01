@@ -54,7 +54,7 @@ def valid_customer_and_product(woocommerce_order):
         return False
 
     # تأكد من وجود العميل الثابت
-    customer = "mjdali173@gmail.com"
+    customer = "woocommerce@alsharaa-dent.com"
     if not frappe.db.exists("Customer", customer):
         frappe.throw(_("Customer {} does not exist").format(customer))
 
@@ -91,40 +91,58 @@ def create_new_customer_of_guest(woocommerce_order):
     import frappe.utils.nestedset
 
     woocommerce_settings = frappe.get_doc("WooCommerce Config", "WooCommerce Config")
-    
-    cust_id = "Guest of Order-ID: {0}".format(woocommerce_order.get("id"))
-    cust_info = woocommerce_order.get("billing")
-        
+    cust_id = "woocommerce@alsharaa-dent.com"
+
     try:
-        customer = frappe.get_doc({
-            "doctype": "Customer",
-            "name": cust_id,
-            "customer_name" : "{0} {1}".format(cust_info["first_name"], cust_info["last_name"]),
-            "woocommerce_customer_id": cust_id,
-            "sync_with_woocommerce": 0,
-            "customer_group": woocommerce_settings.customer_group,
-            "territory": frappe.utils.nestedset.get_root_of("Territory"),
-            "customer_type": _("Individual")
-        })
-        customer.flags.ignore_mandatory = True
-        customer.insert()
-        
-        if customer:
+        # تحقق إذا العميل موجود
+        if not frappe.db.exists("Customer", cust_id):
+            customer = frappe.get_doc({
+                "doctype": "Customer",
+                "name": cust_id,
+                "customer_name": cust_id,
+                "woocommerce_customer_id": cust_id,
+                "sync_with_woocommerce": 0,
+                "customer_group": woocommerce_settings.customer_group,
+                "territory": frappe.utils.nestedset.get_root_of("Territory"),
+                "customer_type": _("Individual")
+            })
+            customer.flags.ignore_mandatory = True
+            customer.insert()
+
+            # إنشاء عنوان وكونتاكت افتراضي
             create_customer_address(customer, woocommerce_order)
             create_customer_contact(customer, woocommerce_order)
-    
-        frappe.db.commit()
-        frappe.local.form_dict.count_dict["customers"] += 1
-        make_woocommerce_log(title="create customer", status="Success", method="create_new_customer_of_guest",
-            message= "create customer",request_data=woocommerce_order, exception=False)
-            
+
+            frappe.db.commit()
+
+            frappe.local.form_dict.count_dict["customers"] += 1
+            make_woocommerce_log(
+                title="create customer",
+                status="Success",
+                method="create_new_customer_of_guest",
+                message="Created WooCommerce Guest",
+                request_data=woocommerce_order,
+                exception=False,
+            )
+        else:
+            customer = frappe.get_doc("Customer", cust_id)
+
+        return customer
+
     except Exception as e:
-        if e.args[0] and e.args[0].startswith("402"):
+        if e.args and isinstance(e.args[0], str) and e.args[0].startswith("402"):
             raise e
         else:
-            make_woocommerce_log(title="{0}".format(e), status="Error", method="create_new_customer_of_guest", message=frappe.get_traceback(),
-                request_data=woocommerce_order, exception=True)
-        
+            make_woocommerce_log(
+                title="{0}".format(e),
+                status="Error",
+                method="create_new_customer_of_guest",
+                message=frappe.get_traceback(),
+                request_data=woocommerce_order,
+                exception=True,
+            )
+
+
 def get_country_name(code):
     coutry_name = ''
     coutry_names = """SELECT `country_name` FROM `tabCountry` WHERE `code` = '{0}'""".format(code.lower())
@@ -145,7 +163,7 @@ def create_order(woocommerce_order, woocommerce_settings, company=None):
 
 def create_sales_order(woocommerce_order, woocommerce_settings, company=None):
     # استخدام عميل ثابت بدل إنشاء عملاء جدد
-    customer = "mjdali173@gmail.com"
+    customer = "woocommerce@alsharaa-dent.com"
 
     so = frappe.db.get_value("Sales Order", {"woocommerce_order_id": woocommerce_order.get("id")}, "name")
     if not so:
