@@ -46,12 +46,7 @@ def create_customer_contact_and_address(woocommerce_customer):
         customer = frappe.get_doc({
             "doctype": "Customer",
             "customer_name": fixed_customer,
-            "name": fixed_customer,
-            "woocommerce_customer_id": fixed_customer,
-            "sync_with_woocommerce": 0,
-            "customer_group": woocommerce_settings.customer_group,
-            "territory": frappe.utils.nestedset.get_root_of("Territory"),
-            "customer_type": _("Individual")
+           
         })
         customer.flags.ignore_mandatory = True
         customer.insert()
