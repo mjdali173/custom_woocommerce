@@ -119,14 +119,14 @@ def create_new_customer_of_guest(woocommerce_order):
 
     woocommerce_settings = frappe.get_doc("WooCommerce Config", "WooCommerce Config")
     
-    cust_id = "Guest of Order-ID: {0}".format(woocommerce_order.get("id"))
-    cust_info = woocommerce_order.get("billing")
+    cust_id = "woocommerce@alsharaa-dent.com"
+    cust_info = "woocommerce@alsharaa-dent.com"
         
     try:
         customer = frappe.get_doc({
             "doctype": "Customer",
             "name": cust_id,
-            "customer_name" : "{0} {1}".format(cust_info["first_name"], cust_info["last_name"]),
+            "customer_name" : cust_info,
             "woocommerce_customer_id": cust_id,
             "sync_with_woocommerce": 0,
             "customer_group": woocommerce_settings.customer_group,
@@ -171,16 +171,10 @@ def create_order(woocommerce_order, woocommerce_settings, company=None):
         #create_delivery_note(woocommerce_order, woocommerce_settings, so)
 
 def create_sales_order(woocommerce_order, woocommerce_settings, company=None):
-    id = str(woocommerce_order.get("customer_id"))
-    customer = frappe.get_all("Customer", filters=[["woocommerce_customer_id", "=", id]], fields=['name'])
-    backup_customer = frappe.get_all("Customer", filters=[["woocommerce_customer_id", "=", "Guest of Order-ID: {0}".format(woocommerce_order.get("id"))]], fields=['name'])
-    if customer:
-        customer = customer[0]['name']
-    elif backup_customer:
-        customer = backup_customer[0]['name']
-    else:
-        frappe.log_error("No customer found. This should never happen.")
+    # 👇 عميل ثابت بغض النظر عن order
+    customer = "woocommerce@alsharaa-dent.com"
 
+    # شوف إذا في order قديم بنفس الووكومرس ID
     so = frappe.db.get_value("Sales Order", {"woocommerce_order_id": woocommerce_order.get("id")}, "name")
     if not so:
         # get shipping/billing address
@@ -196,50 +190,43 @@ def create_sales_order(woocommerce_order, woocommerce_settings, company=None):
             tax_rules = tax_rules[0]['tax_rule']
         else:
             tax_rules = ""
+
         so = frappe.get_doc({
             "doctype": "Sales Order",
             "naming_series": woocommerce_settings.sales_order_series or "SO-woocommerce-",
             "woocommerce_order_id": woocommerce_order.get("id"),
             "woocommerce_payment_method": woocommerce_order.get("payment_method_title"),
-            "customer": customer,
-            "customer_group": woocommerce_settings.customer_group,  # hard code group, as this was missing since v12
+            "customer": customer,  # 👈 ثابت
+            "customer_group": woocommerce_settings.customer_group,
             "delivery_date": nowdate(),
             "company": woocommerce_settings.company,
             "selling_price_list": woocommerce_settings.price_list,
             "ignore_pricing_rule": 1,
             "items": get_order_items(woocommerce_order.get("line_items"), woocommerce_settings),
             "taxes": get_order_taxes(woocommerce_order, woocommerce_settings),
-            # disabled discount as WooCommerce will send this both in the item rate and as discount
-            #"apply_discount_on": "Net Total",
-            #"discount_amount": flt(woocommerce_order.get("discount_total") or 0),
             "currency": woocommerce_order.get("currency"),
             "taxes_and_charges": tax_rules,
             "customer_address": billing_address,
             "shipping_address_name": shipping_address,
-            "transaction_date": woocommerce_order.get("date_created")[:10]          # pull transaction date date from WooCommerce
+            "transaction_date": woocommerce_order.get("date_created")[:10]  # WooCommerce order date
         })
 
         so.flags.ignore_mandatory = True
-        
-        # alle orders in ERP = submitted
         so.save(ignore_permissions=True)
         so.submit()
-        #if woocommerce_order.get("status") == "on-hold":
-        #    so.save(ignore_permissions=True)
-        #elif woocommerce_order.get("status") in ("cancelled", "refunded", "failed"):
-        #    so.save(ignore_permissions=True)
-        #    so.submit()
-        #    so.cancel()
-        #else:
-        #    so.save(ignore_permissions=True)
-        #    so.submit()
 
     else:
         so = frappe.get_doc("Sales Order", so)
 
     frappe.db.commit()
-    make_woocommerce_log(title="create sales order", status="Success", method="create_sales_order",
-            message= "create sales_order",request_data=woocommerce_order, exception=False)
+    make_woocommerce_log(
+        title="create sales order",
+        status="Success",
+        method="create_sales_order",
+        message="Sales Order created for fixed customer",
+        request_data=woocommerce_order,
+        exception=False
+    )
     return so
 
 def get_customer_address_from_order(type, woocommerce_order, customer):
