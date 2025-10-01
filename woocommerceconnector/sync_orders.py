@@ -27,7 +27,7 @@ def sync_orders(woocommerce_settings=None):
         )
 
 def create_sales_order(woocommerce_order, woocommerce_settings):
-    customer = "woocommerce@alsharaa-dent.com"
+    customer = "woocommerce@alsharaa-dent.com"  # عميل ثابت
 
     if not frappe.db.exists("Customer", customer):
         frappe.throw(_("Fixed Customer {0} does not exist").format(customer))
@@ -42,58 +42,29 @@ def create_sales_order(woocommerce_order, woocommerce_settings):
             tax_rules = frappe.get_all("WooCommerce Tax Rule", filters={'currency': "%"}, fields=['tax_rule'])
         tax_rules = tax_rules[0]['tax_rule'] if tax_rules else ""
 
-        items = get_order_items(woocommerce_order.get("line_items"), woocommerce_settings)
-
-        if not items:
-            make_woocommerce_log(
-                title="No Items Found",
-                status="Error",
-                method="create_sales_order",
-                message="Order has no valid items",
-                request_data=woocommerce_order,
-                exception=True
-            )
-            return None
+        payment_method_title = woocommerce_order.get("payment_method_title") or "N/A"
 
         so = frappe.get_doc({
             "doctype": "Sales Order",
             "naming_series": woocommerce_settings.sales_order_series or "SO-woocommerce-",
             "woocommerce_order_id": woocommerce_order.get("id"),
-            "woocommerce_payment_method": woocommerce_order.get("payment_method_title"),
+            "woocommerce_payment_method": payment_method_title,
             "customer": customer,
             "customer_group": woocommerce_settings.customer_group,
             "delivery_date": nowdate(),
             "company": woocommerce_settings.company,
             "selling_price_list": woocommerce_settings.price_list,
             "ignore_pricing_rule": 1,
-            "items": items,
+            "items": get_order_items(woocommerce_order.get("line_items", []), woocommerce_settings),
             "taxes": get_order_taxes(woocommerce_order, woocommerce_settings),
             "currency": woocommerce_order.get("currency"),
             "taxes_and_charges": tax_rules,
             "customer_address": billing_address,
             "shipping_address_name": shipping_address,
-            "transaction_date": woocommerce_order.get("date_created")[:10]
+            "transaction_date": woocommerce_order.get("date_created", "")[:10]
         })
 
         so.flags.ignore_mandatory = True
-
-        # تعديل: حساب الإجماليات قبل الحفظ لتجنب NoneType error
-        try:
-            so.run_method("calculate_taxes_and_totals")
-        except Exception as e:
-            make_woocommerce_log(
-                title=str(e),
-                status="Error",
-                method="create_sales_order",
-                message="Error calculating totals: " + frappe.get_traceback(),
-                request_data=woocommerce_order,
-                exception=True
-            )
-
-        # ضمان أن grand_total ليس None
-        if not flt(so.grand_total):
-            so.grand_total = 0
-
         so.save(ignore_permissions=True)
         so.submit()
 
@@ -111,6 +82,7 @@ def create_sales_order(woocommerce_order, woocommerce_settings):
         exception=False
     )
     return so
+
 
 def create_customer_address(address_type, woocommerce_order, customer):
     address_record = woocommerce_order.get(address_type.lower())
@@ -159,12 +131,15 @@ def get_order_items(order_items, woocommerce_settings):
     for woocommerce_item in order_items:
         item_code = get_item_code(woocommerce_item)
         if not item_code:
-            continue
+            continue  # تجاهل المنتجات غير الموجودة
+        rate = flt(woocommerce_item.get("price"))
+        if rate <= 0:
+            rate = 1  # وضع سعر افتراضي إذا كان السعر صفر
         items.append({
             "item_code": item_code,
-            "rate": flt(woocommerce_item.get("price")) or 0,
+            "rate": rate,
             "delivery_date": nowdate(),
-            "qty": flt(woocommerce_item.get("quantity")) or 0,
+            "qty": flt(woocommerce_item.get("quantity")) or 1,
             "warehouse": woocommerce_settings.warehouse
         })
     return items
@@ -177,6 +152,8 @@ def get_item_code(woocommerce_item):
 
 def get_order_taxes(woocommerce_order, woocommerce_settings):
     taxes = []
+    if not woocommerce_order.get("tax_lines"):
+        return taxes
     for tax in woocommerce_order.get("tax_lines", []):
         woocommerce_tax = get_woocommerce_tax(tax.get("rate_id"))
         rate = flt(woocommerce_tax.get("rate") or 0)
@@ -192,7 +169,6 @@ def get_order_taxes(woocommerce_order, woocommerce_settings):
             "cost_center": woocommerce_settings.cost_center
         })
     return taxes
-
 def get_country_name(code):
     if not code:
         return "Switzerland"
