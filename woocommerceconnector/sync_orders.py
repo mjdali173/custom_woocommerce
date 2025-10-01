@@ -187,3 +187,29 @@ def get_tax_account_head(tax_name):
     if not tax_account:
         frappe.throw(_("Tax Account not specified for WooCommerce Tax {0}").format(tax_name))
     return tax_account
+
+
+
+def close_synced_woocommerce_orders():
+    for woocommerce_order in get_woocommerce_orders():
+        if woocommerce_order.get("status").lower() != "cancelled":
+            order_data = {
+                "status": "completed"
+            }
+            try:
+                put_request("orders/{0}".format(woocommerce_order.get("id")), order_data)
+                    
+            except requests.exceptions.HTTPError as e:
+                make_woocommerce_log(title=e, status="Error", method="close_synced_woocommerce_orders", message=frappe.get_traceback(),
+                    request_data=woocommerce_order, exception=True)
+
+def close_synced_woocommerce_order(wooid):
+    order_data = {
+        "status": "completed"
+    }
+    try:
+        put_request("orders/{0}".format(wooid), order_data)
+            
+    except requests.exceptions.HTTPError as e:
+        make_woocommerce_log(title=e.message, status="Error", method="close_synced_woocommerce_order", message=frappe.get_traceback(),
+            request_data=woocommerce_order, exception=True)
