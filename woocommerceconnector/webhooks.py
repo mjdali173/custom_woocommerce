@@ -52,24 +52,19 @@ def webhook_handler():
 		handler(data)
 
 def create_webhooks():
-    settings = get_woocommerce_settings()
-    # كل الأحداث الافتراضية
-    all_events = [
-        "orders/create", "orders/delete", "orders/updated", "orders/paid", "orders/cancelled", "orders/fulfilled",
-        "orders/partially_fulfilled", "order_transactions/create", "carts/create", "carts/update",
-        "checkouts/create", "checkouts/update", "checkouts/delete", "refunds/create", "products/create",
-        "products/update", "products/delete", "collections/create", "collections/update", "collections/delete",
-        "customer_groups/create", "customer_groups/update", "customer_groups/delete",
-        "fulfillments/create", "fulfillments/update", "shop/update", "disputes/create", "disputes/update",
-        "app/uninstalled", "channels/delete", "product_publications/create", "product_publications/update",
-        "product_publications/delete", "collection_publications/create", "collection_publications/update",
-        "collection_publications/delete", "variants/in_stock", "variants/out_of_stock"
-    ]
+	settings = get_woocommerce_settings()
+	for event in ["orders/create", "orders/delete", "orders/updated", "orders/paid", "orders/cancelled", "orders/fulfilled",
+		"orders/partially_fulfilled", "order_transactions/create", "carts/create", "carts/update",
+		"checkouts/create", "checkouts/update", "checkouts/delete", "refunds/create", "products/create",
+		"products/update", "products/delete", "collections/create", "collections/update", "collections/delete",
+		"customer_groups/create", "customer_groups/update", "customer_groups/delete", "customers/create",
+		"customers/enable", "customers/disable", "customers/update", "customers/delete", "fulfillments/create",
+		"fulfillments/update", "shop/update", "disputes/create", "disputes/update", "app/uninstalled",
+		"channels/delete", "product_publications/create", "product_publications/update",
+		"product_publications/delete", "collection_publications/create", "collection_publications/update",
+		"collection_publications/delete", "variants/in_stock", "variants/out_of_stock"]:
 
-    # نسجل بس الأحداث المسموحة
-    for event in all_events:
-        create_webhook(event, settings.webhook_address)
-
+		create_webhook(event, settings.webhook_address)
 
 def create_webhook(topic, address):
 	post_request('admin/webhooks.json', json.dumps({

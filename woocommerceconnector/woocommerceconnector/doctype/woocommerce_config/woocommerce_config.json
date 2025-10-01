@@ -185,7 +185,7 @@
    "description": "If woocommerce not contains a customer in Order, then while syncing Orders, the system will consider default customer for order",
    "fieldname": "default_customer",
    "fieldtype": "Link",
-   "label": "Default ",
+   "label": "Default Customer",
    "options": "Customer"
   },
   {

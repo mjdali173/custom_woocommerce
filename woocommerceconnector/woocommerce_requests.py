@@ -219,5 +219,18 @@ def get_woocommerce_orders(order_status):
     return woocommerce_orders
 
 def get_woocommerce_customers(ignore_filter_conditions=False):
-    # Deprecated: We no longer sync WooCommerce customers.
-    return []
+    woocommerce_customers = []
+
+    filter_condition = ''
+
+    if not ignore_filter_conditions:
+        filter_condition = get_filtering_condition()
+
+        response = get_request_request('customers?per_page={0}&{1}'.format(_per_page,filter_condition))
+        woocommerce_customers.extend(response.json())
+
+        for page_idx in range(1, int( response.headers.get('X-WP-TotalPages')) or 1):
+            response = get_request_request('customers?per_page={0}&page={1}&{2}'.format(_per_page,page_idx+1,filter_condition))
+            woocommerce_customers.extend(response.json())
+
+    return woocommerce_customers
