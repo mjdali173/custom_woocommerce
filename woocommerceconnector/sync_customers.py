@@ -11,12 +11,7 @@ def sync_customers():
     frappe.local.form_dict.count_dict["customers"] = len(woocommerce_customer_list)
 
 def sync_woocommerce_customers(woocommerce_customer_list):
-    # نجيب عميل واحد فقط من WooCommerce (أول واحد موجود)
-    woocommerce_customers = get_woocommerce_customers()
-    if not woocommerce_customers:
-        return
-
-    woocommerce_customer = woocommerce_customers[0]
+     woocommerce_customer = woocommerce_customers[0]
 
     fixed_customer_name = "woocommerce@alsharaa-dent.com"
 
