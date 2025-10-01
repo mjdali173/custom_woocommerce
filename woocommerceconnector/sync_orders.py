@@ -44,25 +44,26 @@ def create_sales_order(woocommerce_order, woocommerce_settings):
 
         payment_method_title = woocommerce_order.get("payment_method_title") or "N/A"
 
-        so = frappe.get_doc({
-            "doctype": "Sales Order",
-            "naming_series": woocommerce_settings.sales_order_series or "SO-woocommerce-",
-            "woocommerce_order_id": woocommerce_order.get("id"),
-            "woocommerce_payment_method": payment_method_title,
-            "customer": customer,
-            "customer_group": woocommerce_settings.customer_group,
-            "delivery_date": nowdate(),
-            "company": woocommerce_settings.company,
-            "selling_price_list": woocommerce_settings.price_list,
-            "ignore_pricing_rule": 1,
-            "items": get_order_items(woocommerce_order.get("line_items", []), woocommerce_settings),
-            "taxes": get_order_taxes(woocommerce_order, woocommerce_settings),
-            "currency": woocommerce_order.get("currency"),
-            "taxes_and_charges": tax_rules,
-            "customer_address": billing_address,
-            "shipping_address_name": shipping_address,
-            "transaction_date": woocommerce_order.get("date_created", "")[:10]
-        })
+     so = frappe.get_doc({
+    "doctype": "Sales Order",
+    "naming_series": woocommerce_settings.sales_order_series or "SO-woocommerce-",
+    "woocommerce_order_id": woocommerce_order.get("id"),
+    "woocommerce_payment_method": payment_method_title,
+    "customer": customer,
+    "customer_group": woocommerce_settings.customer_group,
+    "delivery_date": nowdate(),
+    "company": woocommerce_settings.company,
+    "selling_price_list": woocommerce_settings.price_list,
+    "ignore_pricing_rule": 1,
+    "items": get_order_items(woocommerce_order.get("line_items", []), woocommerce_settings),
+    "taxes": get_order_taxes(woocommerce_order, woocommerce_settings),
+    "currency": woocommerce_order.get("currency") or "USD",  # قيمة افتراضية
+    "taxes_and_charges": tax_rules,
+    "customer_address": billing_address,
+    "shipping_address_name": shipping_address,
+    "transaction_date": woocommerce_order.get("date_created", "")[:10] or nowdate()
+})
+
 
         so.flags.ignore_mandatory = True
         so.save(ignore_permissions=True)
@@ -132,14 +133,20 @@ def get_order_items(order_items, woocommerce_settings):
         item_code = get_item_code(woocommerce_item)
         if not item_code:
             continue  # تجاهل المنتجات غير الموجودة
-        rate = flt(woocommerce_item.get("price"))
+
+        # التأكد أن السعر والكمية أرقام صحيحة
+        rate = flt(woocommerce_item.get("price") or woocommerce_item.get("total") or 0)
+        qty = flt(woocommerce_item.get("quantity") or 1)
+
+        # إذا السعر صفر → حط 1 حتى ما يفشل ERPNext (ممكن تعدلها حسب رغبتك)
         if rate <= 0:
-            rate = 1  # وضع سعر افتراضي إذا كان السعر صفر
+            rate = 1.0
+
         items.append({
             "item_code": item_code,
             "rate": rate,
             "delivery_date": nowdate(),
-            "qty": flt(woocommerce_item.get("quantity")) or 1,
+            "qty": qty,
             "warehouse": woocommerce_settings.warehouse
         })
     return items
