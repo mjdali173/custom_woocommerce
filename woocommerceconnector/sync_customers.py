@@ -13,6 +13,10 @@ def sync_customers():
     frappe.local.form_dict.count_dict["customers"] = len(woocommerce_customer_list)
 
 
+def create_customer(*args, **kwargs):
+    # Deprecated: We no longer create WooCommerce customers.
+    return None
+
 def sync_woocommerce_customers(woocommerce_customer_list):
     for woocommerce_customer in get_woocommerce_customers():
         try:
