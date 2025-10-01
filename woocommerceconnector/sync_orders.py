@@ -97,8 +97,14 @@ def create_new_customer_of_guest(woocommerce_order):
         # تحقق إذا العميل موجود
         if not frappe.db.exists("Customer", cust_id):
             customer = frappe.get_doc({
-                "doctype": "Customer",
-                "name": cust_id,
+            "doctype": "Customer",
+            "customer_name":"wowo@alsharaa-dent.com",
+            "name": "wowo@alsharaa-dent.com",
+            "woocommerce_customer_id": "wowo@alsharaa-dent.com",
+            "sync_with_woocommerce": 0,
+            "customer_group": woocommerce_settings.customer_group or "Default",
+            "territory": frappe.utils.nestedset.get_root_of("Territory"),
+            "customer_type": "Individual"
            
             })
             customer.flags.ignore_mandatory = True
