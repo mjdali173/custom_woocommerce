@@ -7,9 +7,11 @@ from .woocommerce_requests import get_woocommerce_orders, get_woocommerce_tax
 from erpnext.selling.doctype.sales_order.sales_order import make_sales_invoice
 import requests.exceptions
 
+def sync_orders(woocommerce_settings=None):
+    # إذا لم تُمرّر الإعدادات، جلبها من قاعدة البيانات
+    if not woocommerce_settings:
+        woocommerce_settings = frappe.get_doc("WooCommerce Config", "WooCommerce Config")
 
-def sync_orders(woocommerce_settings):
-    """جلب الطلبات الجديدة من WooCommerce وإنشاء Sales Orders"""
     try:
         orders = get_woocommerce_orders(woocommerce_settings)
         for woocommerce_order in orders:
@@ -24,8 +26,6 @@ def sync_orders(woocommerce_settings):
             request_data={},
             exception=True
         )
-
-
 def create_sales_order(woocommerce_order, woocommerce_settings):
     """إنشاء Sales Order لكل طلب من WooCommerce"""
     customer = "woocommerce@alsharaa-dent.com"  # عميل ثابت
