@@ -11,20 +11,33 @@ def sync_customers():
     frappe.local.form_dict.count_dict["customers"] = len(woocommerce_customer_list)
 
 def sync_woocommerce_customers(woocommerce_customer_list):
-    for woocommerce_customer in get_woocommerce_customers():
-        # import new customer or update existing customer
-        if not frappe.db.get_value("Customer", {"name": "woocommerce@alsharaa-dent.com"}, "name"):
-            #only synch customers with address
-            if woocommerce_customer.get("billing").get("address_1") != "" and woocommerce_customer.get("shipping").get("address_1") != "":
-                create_customer(woocommerce_customer, woocommerce_customer_list)
-            # else:
-            #    make_woocommerce_log(title="customer without address", status="Error", method="create_customer",
-            #        message= "customer without address found",request_data=woocommerce_customer, exception=False)
-        else:
-            update_customer(woocommerce_customer)
+    # نجيب عميل واحد فقط من WooCommerce (أول واحد موجود)
+    woocommerce_customers = get_woocommerce_customers()
+    if not woocommerce_customers:
+        return
+
+    woocommerce_customer = woocommerce_customers[0]
+
+    fixed_customer_name = "woocommerce@alsharaa-dent.com"
+
+    # إذا العميل الثابت غير موجود في ERPNext، ننشئه
+    if not frappe.db.get_value("Customer", fixed_customer_name, "name"):
+        create_customer(woocommerce_customer, woocommerce_customer_list)
+    else:
+        update_customer(woocommerce_customer)
 
 def update_customer(woocommerce_customer):
-    return
+    fixed_customer_name = "woocommerce@alsharaa-dent.com"
+    try:
+        customer = frappe.get_doc("Customer", fixed_customer_name)
+        create_customer_address(customer, woocommerce_customer)
+        create_customer_contact(customer, woocommerce_customer)
+        frappe.db.commit()
+        make_woocommerce_log(title="update customer", status="Success", method="update_customer",
+            message="Updated fixed customer with new address", request_data=woocommerce_customer, exception=False)
+    except Exception as e:
+        make_woocommerce_log(title=e, status="Error", method="update_customer", message=frappe.get_traceback(),
+            request_data=woocommerce_customer, exception=True)
 
 def create_customer(woocommerce_customer, woocommerce_customer_list):
     import frappe.utils.nestedset
@@ -40,11 +53,12 @@ def create_customer(woocommerce_customer, woocommerce_customer_list):
             territory = country_name
         else:
             territory = frappe.utils.nestedset.get_root_of("Territory")
+
         customer = frappe.get_doc({
             "doctype": "Customer",
-            "name": woocommerce_customer.get("id"),
-            "customer_name" : cust_name,
-            "woocommerce_customer_id": woocommerce_customer.get("id"),
+            "name": cust_name,
+            "customer_name": cust_name,
+            "woocommerce_customer_id": "0",
             "sync_with_woocommerce": 0,
             "customer_group": woocommerce_settings.customer_group,
             "territory": territory,
@@ -52,15 +66,15 @@ def create_customer(woocommerce_customer, woocommerce_customer_list):
         })
         customer.flags.ignore_mandatory = True
         customer.insert()
-        
+
         if customer:
             create_customer_address(customer, woocommerce_customer)
             create_customer_contact(customer, woocommerce_customer)
-    
+
         woocommerce_customer_list.append(woocommerce_customer.get("id"))
         frappe.db.commit()
         make_woocommerce_log(title="create customer", status="Success", method="create_customer",
-            message= "create customer",request_data=woocommerce_customer, exception=False)
+            message="Created fixed customer", request_data=woocommerce_customer, exception=False)
             
     except Exception as e:
         if e.args[0] and e.args[0].startswith("402"):
@@ -68,7 +82,7 @@ def create_customer(woocommerce_customer, woocommerce_customer_list):
         else:
             make_woocommerce_log(title=e, status="Error", method="create_customer", message=frappe.get_traceback(),
                 request_data=woocommerce_customer, exception=True)
-        
+
 def create_customer_address(customer, woocommerce_customer):
     billing_address = woocommerce_customer.get("billing")
     shipping_address = woocommerce_customer.get("shipping")
@@ -77,7 +91,7 @@ def create_customer_address(customer, woocommerce_customer):
         country = get_country_name(billing_address.get("country"))
         if not frappe.db.exists("Country", country):
             country = "Switzerland"
-        try :
+        try:
             frappe.get_doc({
                 "doctype": "Address",
                 "woocommerce_address_id": "Billing",
@@ -108,7 +122,7 @@ def create_customer_address(customer, woocommerce_customer):
         country = get_country_name(shipping_address.get("country"))
         if not frappe.db.exists("Country", country):
             country = "Switzerland"
-        try :
+        try:
             frappe.get_doc({
                 "doctype": "Address",
                 "woocommerce_address_id": "Shipping",
@@ -135,9 +149,8 @@ def create_customer_address(customer, woocommerce_customer):
             make_woocommerce_log(title=e, status="Error", method="create_customer_address", message=frappe.get_traceback(),
                 request_data=woocommerce_customer, exception=True)
 
-# TODO: email and phone into child table
 def create_customer_contact(customer, woocommerce_customer):
-    try :
+    try:
         new_contact = frappe.get_doc({
             "doctype": "Contact",
             "first_name": woocommerce_customer["billing"]["first_name"],
