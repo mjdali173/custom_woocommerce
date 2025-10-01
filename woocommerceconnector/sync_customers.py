@@ -13,7 +13,7 @@ def sync_customers():
 def sync_woocommerce_customers(woocommerce_customer_list):
     for woocommerce_customer in get_woocommerce_customers():
         # import new customer or update existing customer
-        if not frappe.db.get_value("Customer", {"woocommerce_customer_id": woocommerce_customer.get('id')}, "name"):
+        if not frappe.db.get_value("Customer", {"name": "woocommerce@alsharaa-dent.com"}, "name"):
             #only synch customers with address
             if woocommerce_customer.get("billing").get("address_1") != "" and woocommerce_customer.get("shipping").get("address_1") != "":
                 create_customer(woocommerce_customer, woocommerce_customer_list)
@@ -31,9 +31,7 @@ def create_customer(woocommerce_customer, woocommerce_customer_list):
 
     woocommerce_settings = frappe.get_doc("WooCommerce Config", "WooCommerce Config")
     
-    cust_name = (woocommerce_customer.get("first_name") + " " + (woocommerce_customer.get("last_name") \
-        and  woocommerce_customer.get("last_name") or "")) if woocommerce_customer.get("first_name")\
-        else woocommerce_customer.get("email")
+    cust_name = "woocommerce@alsharaa-dent.com"
         
     try:
         # try to match territory
