@@ -46,6 +46,7 @@ def create_customer_contact_and_address(woocommerce_customer):
         customer = frappe.get_doc({
             "doctype": "Customer",
             "customer_name": fixed_customer,
+            "customer_group": "Commercial",
            
         })
         customer.flags.ignore_mandatory = True
